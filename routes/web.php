@@ -3,15 +3,18 @@
 use App\Http\Controllers\AccessController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlaybackController;
 use App\Http\Controllers\PreviewAnalyticsController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\StreamController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\WatchHistoryController;
@@ -42,6 +45,14 @@ Route::post('/report', [ReportController::class, 'store'])->middleware('throttle
 
 // Newsletter signup.
 Route::post('/newsletter', [NewsletterController::class, 'subscribe'])->middleware('throttle:auth')->name('newsletter.subscribe');
+
+// Static / legal pages + contact + SEO.
+Route::get('/contact', [ContactController::class, 'show'])->name('contact');
+Route::post('/contact', [ContactController::class, 'submit'])->middleware('throttle:auth')->name('contact.submit');
+Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+Route::get('/{page}', [PageController::class, 'show'])
+    ->whereIn('page', ['terms', 'privacy', 'content-policy', 'refund-policy', 'dmca'])->name('page');
 
 /*
 | Streaming endpoints

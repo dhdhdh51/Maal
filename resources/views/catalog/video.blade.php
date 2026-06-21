@@ -1,6 +1,25 @@
 @extends('layouts.app')
 @section('title', $video->seo_title ?: $video->title)
 @section('meta_description', $video->meta_description ?: '')
+@push('head')
+    <link rel="canonical" href="{{ route('video.show', $video) }}">
+    @if ($video->noindex)<meta name="robots" content="noindex">@endif
+    <meta property="og:type" content="video.other">
+    <meta property="og:title" content="{{ $video->title }}">
+    <meta property="og:description" content="{{ $video->meta_description ?: \Illuminate\Support\Str::limit($video->description, 160) }}">
+    @if ($video->poster_path)<meta property="og:image" content="{{ cdn_url($video->poster_path) }}">@endif
+    <script type="application/ld+json">
+    @json([
+        '@context' => 'https://schema.org',
+        '@type' => 'VideoObject',
+        'name' => $video->title,
+        'description' => $video->meta_description ?: strip_tags((string) $video->description),
+        'thumbnailUrl' => $video->poster_path ? cdn_url($video->poster_path) : null,
+        'uploadDate' => optional($video->published_at)->toAtomString(),
+        'duration' => $video->duration ? 'PT'.$video->duration.'S' : null,
+    ], JSON_UNESCAPED_SLASHES)
+    </script>
+@endpush
 @section('content')
     <div class="grid lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2">

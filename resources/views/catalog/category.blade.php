@@ -1,6 +1,13 @@
 @extends('layouts.app')
 @section('title', $category->seo_title ?: $category->name)
 @section('meta_description', $category->meta_description ?: '')
+@push('head')
+    <link rel="canonical" href="{{ $category->canonical_url ?: route('category.show', $category) }}">
+    @if ($category->noindex)<meta name="robots" content="noindex">@endif
+    <meta property="og:title" content="{{ $category->seo_title ?: $category->name }}">
+    <meta property="og:description" content="{{ $category->meta_description ?: '' }}">
+    @if ($category->cover_image)<meta property="og:image" content="{{ cdn_url($category->cover_image) }}">@endif
+@endpush
 @section('content')
     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
