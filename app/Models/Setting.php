@@ -24,18 +24,34 @@ class Setting extends Model
 
     /**
      * Get a typed setting value with a fallback default.
+     *
+     * The full settings map is cached as a plain array (key => [value, type])
+     * so it survives serialization across cache drivers/processes.
      */
     public static function get(string $key, mixed $default = null): mixed
     {
-        $all = Cache::rememberForever(self::CACHE_KEY, fn () => static::all()->keyBy('key'));
+        $all = Cache::rememberForever(
+            self::CACHE_KEY,
+            fn () => static::query()->get(['key', 'value', 'type'])
+                ->mapWithKeys(fn (self $s) => [$s->key => ['value' => $s->value, 'type' => $s->type]])
+                ->all(),
+        );
 
-        $setting = $all->get($key);
-
-        if (! $setting) {
+        if (! array_key_exists($key, $all)) {
             return $default;
         }
 
-        return $setting->typedValue();
+        return self::castValue($all[$key]['value'], $all[$key]['type']);
+    }
+
+    protected static function castValue(mixed $value, string $type): mixed
+    {
+        return match ($type) {
+            'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+            'integer' => (int) $value,
+            'json' => json_decode((string) $value, true),
+            default => $value,
+        };
     }
 
     public static function put(string $key, mixed $value, string $group = 'general', string $type = 'string'): self
@@ -52,11 +68,6 @@ class Setting extends Model
 
     public function typedValue(): mixed
     {
-        return match ($this->type) {
-            'boolean' => filter_var($this->value, FILTER_VALIDATE_BOOLEAN),
-            'integer' => (int) $this->value,
-            'json' => json_decode((string) $this->value, true),
-            default => $this->value,
-        };
+        return self::castValue($this->value, $this->type);
     }
 }
