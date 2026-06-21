@@ -1,0 +1,458 @@
+Act as a senior PHP streaming-platform architect, UI/UX designer, security engineer, and DevOps developer.
+
+Build a production-grade, premium, legal age-gated video streaming platform with a cinematic 3D-realistic dark UI. The platform must be fully mobile responsive, tablet compatible, desktop optimized, and fast on low-end Android devices.
+
+IMPORTANT:
+- Use PHP 8.2+ with Laravel framework, MySQL 8, Redis queue, FFmpeg, HLS adaptive streaming, and object storage compatible with AWS S3 / Cloudflare R2 / Backblaze B2.
+- Do not use direct huge-file uploads through normal PHP form uploads.
+- Use resumable multipart uploads directly to cloud storage.
+- Use background queue jobs for transcoding, thumbnail generation, preview generation, subtitle processing, and HLS conversion.
+- Build clean production-ready code, no placeholder pages, no fake buttons, no incomplete modules.
+- Never expose original video files publicly. Stream only via signed HLS URLs.
+- The website must support only lawful content. Include content rights confirmation, report system, age gate, consent declaration, admin moderation, and country restriction settings.
+
+DESIGN:
+Create a premium cinematic interface with:
+- Dark black / charcoal base, glassmorphism cards, soft gradients, subtle neon highlights.
+- Realistic 3D floating video-card effects using Three.js only for decorative hero elements.
+- Do not make the UI heavy. Disable/reduce 3D effects automatically on low-end devices and use a CSS fallback.
+- Smooth hover animations on desktop and tap-safe cards on mobile.
+- Large mobile-first category tiles.
+- Responsive bottom navigation for mobile.
+- Sticky desktop sidebar navigation.
+- Skeleton loaders, empty states, error states, retry buttons, and success toasts.
+- Accessible font sizing, clear contrast, keyboard navigation, and fast page loading.
+
+USER ROLES:
+1. Guest
+2. Registered User
+3. Premium User
+4. Admin
+5. Content Manager
+
+USER FEATURES:
+- Home page with featured categories, trending videos, newest uploads, continue watching, recently added, and recommended content.
+- Register, login, logout, forgot password, email OTP verification, optional phone OTP verification.
+- Age confirmation gate before browsing restricted content.
+- User dashboard with profile, active category access, payment history, watch history, favorites, devices, support tickets, and logout.
+- Search videos and categories.
+- Filters for category, duration, newest, trending, most watched, free preview, and unlocked.
+- Watchlist/favorites.
+- Continue watching with saved progress.
+- Video quality selector: Auto, 360p, 480p, 720p, 1080p, 4K where available.
+- Subtitle and audio track selector.
+- Full screen player, picture-in-picture where browser supports it, autoplay next video toggle.
+- Display locked videos inside unlocked or locked categories with clear lock icons.
+
+CATEGORY ACCESS AND LOCKING:
+- Admin can create unlimited categories.
+- Every category must support:
+  - Name
+  - Slug
+  - Description
+  - Cover image
+  - Banner image
+  - Sort order
+  - Active/inactive status
+  - Access type: Free / Paid / Subscription / Lifetime Access
+  - Price
+  - Currency
+  - Validity duration in days
+  - Preview duration in seconds
+  - Country availability
+  - SEO title and meta description
+- Users can see videos inside locked categories, but videos remain locked.
+- When a user taps a locked video, open a preview player.
+- Preview duration must be configurable globally, category-wise, and video-wise.
+- Default preview duration: 20 seconds.
+- The admin can change preview duration at any time.
+- Users must not seek beyond the allowed preview time.
+- After preview ends, show a premium unlock modal with category plan and payment button.
+- Support preview thumbnail or custom teaser video for each video.
+
+PAYMENT AND ACCESS:
+- Build modular payment gateway support.
+- Support Razorpay, PayU, Stripe, and manual payment approval as separate configurable gateways.
+- Enable only gateways approved for the platform’s lawful content category.
+- Admin can create category-based plans:
+  - One-time unlock
+  - Monthly access
+  - Quarterly access
+  - Yearly access
+  - Lifetime access
+  - Bundle of multiple categories
+- Support coupon codes, limited-time offers, referral codes, free trial access, and admin-granted access.
+- Use secure payment webhooks with signature verification and idempotency protection.
+- Automatically grant or revoke category access based on successful payment, expiration, refund, or admin action.
+- Show invoices and payment history in the user dashboard.
+
+VIDEO UPLOAD AND STREAMING:
+- Admin and Content Manager can upload any practical file size through chunked resumable upload.
+- Do not impose an artificial file-size limit in the UI. Storage quota must be configurable from admin settings.
+- Support MP4, MOV, MKV, WEBM, and AVI uploads.
+- Validate file type, MIME type, checksum, duration, dimensions, and file integrity.
+- Store original upload privately.
+- Convert every video into adaptive HLS streaming qualities based on source:
+  - 360p
+  - 480p
+  - 720p
+  - 1080p
+  - 4K where source supports it
+- Generate:
+  - Poster image
+  - Multiple thumbnails
+  - Preview clip
+  - HLS playlist
+  - Video duration
+  - Resolution information
+  - File size information
+- Use queue retries and detailed job progress.
+- Show admin upload progress with states:
+  - Uploading
+  - Uploaded
+  - Processing
+  - Generating Preview
+  - Encoding
+  - Ready
+  - Failed
+  - Retry Processing
+- Add bulk upload with CSV metadata import.
+- Add drag-and-drop upload.
+- Allow admin to upload subtitles in SRT and VTT format.
+- Allow admin to choose custom preview start time and custom preview length.
+
+ADMIN PANEL:
+Create a secure, premium admin dashboard with:
+- Dashboard analytics: users, revenue, active subscriptions, category sales, watch time, top videos, failed payments, upload processing status.
+- Unlimited category management.
+- Video management with filters and bulk actions.
+- Preview duration management:
+  - Global default preview duration
+  - Per-category preview duration
+  - Per-video preview duration
+- Upload settings:
+  - Storage provider
+  - Bucket details
+  - CDN domain
+  - Max storage quota
+  - Allowed video formats
+  - Video conversion profiles
+- Payment gateway settings.
+- User management.
+- User category-access management.
+- Coupons and offers.
+- Reported content moderation queue.
+- Content rights declaration records.
+- Country restrictions.
+- Homepage section manager.
+- Banner, logo, favicon, site settings, footer links, legal pages, SEO settings.
+- Email SMTP settings.
+- Notification templates.
+- Admin activity audit logs.
+- Role and permission management.
+- Backup/export settings.
+- Maintenance mode.
+- System health page for queue, storage, transcoding, and failed jobs.
+
+SECURITY:
+- Use Laravel authentication and secure password hashing.
+- CSRF protection, rate limiting, XSS protection, SQL injection prevention, input sanitization, secure cookies, HTTPS enforcement.
+- Signed and expiring HLS URLs.
+- Prevent direct original-file access.
+- Device/session management.
+- Configurable device limit per user account.
+- Optional visible watermark with user ID or email on playback.
+- Optional dynamic watermark movement.
+- Download blocking at player level where possible, while acknowledging browser-level absolute prevention is not guaranteed.
+- Login anomaly alerts.
+- Brute force protection.
+- Admin two-factor authentication.
+- Secure file scanning hook before processing uploads.
+- Audit all admin actions.
+- Add legal reporting workflow and quick content disable button.
+
+PERFORMANCE:
+- Use Redis cache and queue.
+- Lazy-load thumbnails and video cards.
+- Use paginated API endpoints.
+- Use CDN URLs for images and HLS segments.
+- Optimize MySQL indexes.
+- Add database migrations, seeders, factories, and clean API structure.
+- Avoid page reloads where possible.
+- Build responsive image sizes.
+- Add fallback UI if video processing is delayed.
+- Handle upload interruption and resume from last uploaded chunk.
+- Add graceful retry handling for payment, upload, transcoding, and playback errors.
+
+PAGES REQUIRED:
+- Home
+- Browse Categories
+- Category Details
+- Video Details
+- Video Player
+- Login
+- Register
+- Forgot Password
+- Verify Account
+- Subscription / Unlock Category
+- Checkout
+- Payment Success
+- Payment Failed
+- User Dashboard
+- My Access
+- Watch History
+- Favorites
+- Support Tickets
+- Contact
+- Terms
+- Privacy Policy
+- Content Policy
+- Copyright / DMCA-style Report Page
+- Age Confirmation Page
+- Admin Login
+- Full Admin Dashboard
+
+DATABASE TABLES:
+Create proper migrations and relations for:
+- users
+- roles
+- permissions
+- categories
+- category_access_plans
+- videos
+- video_files
+- video_previews
+- video_subtitles
+- video_processing_jobs
+- user_category_access
+- payments
+- payment_transactions
+- coupons
+- coupon_redemptions
+- watch_history
+- favorites
+- user_devices
+- user_sessions
+- reports
+- support_tickets
+- notifications
+- settings
+- storage_configurations
+- audit_logs
+- email_templates
+- banners
+- homepage_sections
+- country_restrictions
+
+DELIVERABLES:
+- Full Laravel project structure.
+- MySQL migrations and seeders.
+- Secure REST API routes.
+- Responsive frontend templates.
+- Admin panel.
+- FFmpeg command service and background queues.
+- Storage adapter for local storage, S3, Cloudflare R2, and Backblaze B2.
+- README with installation steps for VPS deployment.
+- .env example file.
+- Queue worker and cron setup commands.
+- Nginx configuration sample.
+- Supervisor configuration sample for queue workers.
+- Error logs and troubleshooting section.
+- Test accounts for Admin and User.
+- No fake APIs, no incomplete sections, no placeholders.
+ADDITIONAL PREMIUM FEATURES — MUST IMPLEMENT:
+
+1. DYNAMIC WATERMARK SECURITY:
+- Add optional dynamic playback watermark for protected videos.
+- Watermark must show logged-in user email, user ID, mobile number masked format, current date/time, and session ID.
+- Watermark position must move randomly every few seconds to reduce screen-recording misuse.
+- Admin can enable/disable watermark globally, category-wise, or video-wise.
+- Admin can customize watermark text, opacity, font size, movement interval, and placement behavior.
+
+2. DEVICE LIMIT AND SESSION CONTROL:
+- Admin can set maximum allowed devices per user account globally and category-wise.
+- Default device limit configurable: 1, 2, 3, or unlimited.
+- Show all active logged-in devices inside user dashboard.
+- User can remove/logout unknown devices.
+- Admin can force logout any user or all devices.
+- Detect suspicious simultaneous playback from multiple locations/devices.
+- Block playback if device limit is exceeded and show a clear upgrade/support message.
+
+3. WATCH HISTORY AND CONTINUE WATCHING:
+- Save exact video playback progress automatically.
+- Add “Continue Watching” section on homepage and user dashboard.
+- Resume playback from last watched timestamp.
+- Allow user to remove videos from watch history.
+- Add “Recently Watched,” “Recommended for You,” and “Because You Watched” sections.
+- Admin can enable or disable watch-history storage for privacy compliance.
+
+4. PREVIEW CONVERSION ANALYTICS:
+- Track how many users opened a locked video preview.
+- Track preview completion percentage.
+- Track how many preview viewers clicked Unlock.
+- Track payment conversion after preview.
+- Show analytics by video, category, date range, country, device type, and traffic source.
+- Add dashboard cards:
+  - Total Preview Plays
+  - Preview-to-Payment Conversion Rate
+  - Most Converted Category
+  - Most Watched Preview Video
+  - Abandoned Checkout Count
+- Allow CSV export of analytics reports.
+
+5. COUPON, REFERRAL, AND OFFER SYSTEM:
+- Create coupon codes with:
+  - Percentage discount
+  - Flat discount
+  - Free category access
+  - Limited usage count
+  - Per-user usage limit
+  - Start and expiry date
+  - Category-specific or all-category use
+- Create referral system:
+  - Every user gets unique referral code/link.
+  - Admin can set reward type: wallet credit, free preview extension, discount, free category access, or points.
+  - Reward is granted only after successful payment.
+- Add flash offers, limited-time deals, countdown timers, bundle discounts, and first-purchase discounts.
+- Add abandoned checkout reminder system through email, WhatsApp link, or dashboard notification.
+
+6. SUPPORT TICKETS AND WHATSAPP SUPPORT:
+- Add user support-ticket system with categories:
+  - Payment Issue
+  - Access Not Granted
+  - Playback Issue
+  - Refund Request
+  - Account Issue
+  - Other
+- Ticket status: Open, In Progress, Waiting for User, Resolved, Closed.
+- Support file attachment upload for screenshots.
+- Admin can reply from dashboard.
+- Add configurable floating WhatsApp support button.
+- Admin can enable WhatsApp button globally or only on checkout/payment pages.
+- Show support FAQ before creating ticket.
+
+7. CONTENT REPORTING AND INSTANT DISABLE:
+- Every video and category must have a Report Content option.
+- Report reasons:
+  - Copyright Issue
+  - Consent Issue
+  - Incorrect Category
+  - Technical Problem
+  - Illegal Content
+  - Other
+- Admin moderation panel with report priority, notes, reviewer, and resolution status.
+- Add one-click “Disable Video Immediately” action.
+- Disabled video must instantly stop playback and remove from listings.
+- Keep audit log of disable/restore actions.
+- Allow admin to send notification to uploader/content manager when content is disabled.
+
+8. CLOUD STORAGE AND VIDEO DELIVERY:
+- Do not rely on shared hosting storage for large videos.
+- Support configurable storage providers:
+  - Cloudflare R2
+  - Amazon S3
+  - Backblaze B2
+  - DigitalOcean Spaces
+  - Local VPS storage only for development/testing
+- Add storage usage analytics:
+  - Total storage used
+  - Storage used by category
+  - Storage used by video
+  - Bandwidth usage
+  - Estimated monthly storage cost
+- Enable CDN domain configuration for HLS segments, thumbnails, posters, and preview clips.
+- Add automatic cleanup for failed uploads and unused temporary files.
+
+9. DEDICATED TRANSCODING WORKER:
+- Video upload and video conversion must run separately.
+- Use Redis queue with Supervisor-managed workers.
+- Create separate queue channels:
+  - Upload validation
+  - Thumbnail generation
+  - Preview generation
+  - HLS transcoding
+  - Subtitle processing
+  - Notification delivery
+  - Analytics aggregation
+- Add automatic retry with exponential backoff.
+- Admin should see processing logs, failed-job reason, retry button, cancel button, and reprocess button.
+- Ensure frontend remains fast while FFmpeg processing runs in background.
+
+10. VIDEO PROCESSING FALLBACK SYSTEM:
+- If video is uploaded but processing is incomplete, show:
+  - “Video is being prepared”
+  - Processing percentage
+  - Estimated stages, not estimated time
+  - Retry playback button
+- If a selected quality is unavailable, automatically switch to nearest available quality.
+- If HLS playback fails, use fallback MP4 preview only when authorized.
+- Show graceful error screen with Retry, Report Issue, and Back to Category buttons.
+- Never show raw technical errors to normal users.
+- Log technical error details securely for admin.
+
+11. ADVANCED ADMIN ANALYTICS:
+- Revenue analytics by day, week, month, category, plan, coupon, and gateway.
+- User growth chart.
+- Active subscriber count.
+- Expiring access count.
+- Failed payment count.
+- Refund count.
+- Most watched videos.
+- Most purchased categories.
+- Most used coupons.
+- Device-limit violation attempts.
+- Top countries, browsers, and devices.
+- Storage and transcoding health status.
+- Live queue status and failed job alerts.
+
+12. NOTIFICATIONS:
+- In-app notification center for users.
+- Email notifications for:
+  - Registration verification
+  - Successful payment
+  - Category access granted
+  - Access expiry reminder
+  - Payment failure
+  - Coupon offer
+  - Support ticket reply
+  - Password change
+  - New device login
+- Optional WhatsApp notification integration through configurable provider.
+- Admin notification for failed uploads, failed payments, reported content, low storage warning, and queue failure.
+
+13. SEO AND MARKETING:
+- SEO-friendly category and video URLs.
+- Open Graph tags for category pages.
+- Schema markup for VideoObject where legally appropriate.
+- XML sitemap for public pages only.
+- Robots.txt controls for restricted/private pages.
+- Landing pages for selected categories.
+- Email capture popup with configurable delay.
+- Newsletter opt-in.
+- Affiliate/referral landing pages.
+- UTM tracking support.
+- Meta title, description, canonical URL, and noindex settings per category/video.
+
+14. LEGAL AND COMPLIANCE:
+- Mandatory age confirmation screen.
+- Terms acceptance during registration.
+- Content rights declaration checkbox before every upload.
+- Consent verification record field for uploaded content.
+- Copyright complaint workflow.
+- Privacy policy, refund policy, content policy, and terms pages editable from admin.
+- Country restriction settings.
+- Admin option to block access from selected countries or allow only selected countries.
+- Keep compliance logs for content approval, reports, payments, and admin actions.
+
+15. FINAL QUALITY REQUIREMENTS:
+- No broken routes.
+- No dead buttons.
+- No fake analytics.
+- No placeholder images in production mode.
+- All forms must have validation and useful error messages.
+- All major actions must have loading state, success state, and failure state.
+- Mobile UI must be priority-first.
+- Test on Android Chrome, iPhone Safari, tablets, desktop Chrome, Firefox, and Edge.
+- Use clean modular code with comments only where necessary.
+Payu Main Getway Hona Chaiy
+- Include complete README, environment setup, VPS deployment, worker setup, FFmpeg setup, storage setup, cron setup, backup process, and troubleshooting guide.
