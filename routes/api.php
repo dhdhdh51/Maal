@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
 use App\Models\Setting;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,13 @@ Route::middleware('throttle:api')->group(function () {
 
     Route::get('/health', fn () => ApiResponse::success(['status' => 'ok', 'time' => now()->toIso8601String()]))
         ->name('api.health');
+
+    // Authentication (token-based for mobile/SPA clients).
+    Route::prefix('auth')->middleware('throttle:auth')->group(function () {
+        Route::post('/register', [AuthController::class, 'register'])->name('api.auth.register');
+        Route::post('/login', [AuthController::class, 'login'])->name('api.auth.login');
+        Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->name('api.auth.verify');
+    });
 });
 
 // Authenticated API surface (token or stateful session).
@@ -42,4 +50,6 @@ Route::middleware(['auth:sanctum', 'account.active', 'throttle:api'])->group(fun
         'user' => $r->user()->only(['id', 'name', 'email', 'is_premium', 'country']),
         'roles' => $r->user()->getRoleNames(),
     ]))->name('api.me');
+
+    Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
 });

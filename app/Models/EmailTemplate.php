@@ -20,18 +20,38 @@ class EmailTemplate extends Model
     }
 
     /**
-     * Render the template body by replacing {{ var }} merge tags.
+     * Render the template body, replacing {var}, {{var}} and {{ var }} merge tags.
      *
      * @param  array<string, string>  $vars
      */
     public function render(array $vars = []): string
     {
-        $body = $this->body_html;
+        return $this->replaceTags($this->body_html, $vars);
+    }
 
+    /**
+     * Render the subject line with the same merge tags.
+     *
+     * @param  array<string, string>  $vars
+     */
+    public function renderSubject(array $vars = []): string
+    {
+        return $this->replaceTags($this->subject, $vars);
+    }
+
+    /**
+     * @param  array<string, string>  $vars
+     */
+    protected function replaceTags(string $text, array $vars): string
+    {
         foreach ($vars as $key => $value) {
-            $body = str_replace(['{{'.$key.'}}', '{{ '.$key.' }}'], (string) $value, $body);
+            $text = str_replace(
+                ['{{ '.$key.' }}', '{{'.$key.'}}', '{'.$key.'}'],
+                (string) $value,
+                $text,
+            );
         }
 
-        return $body;
+        return $text;
     }
 }
