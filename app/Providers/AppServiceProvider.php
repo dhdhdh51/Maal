@@ -23,9 +23,13 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureModels(): void
     {
-        // Catch lazy loading / bad mass-assignment early outside production.
-        Model::shouldBeStrict(! $this->app->isProduction());
-        Model::unguard(false);
+        $strict = ! $this->app->isProduction();
+
+        // Catch N+1 lazy loads and silently-dropped attributes outside
+        // production, but allow reading not-yet-loaded attributes (returns
+        // null) so freshly-created models stay ergonomic.
+        Model::preventLazyLoading($strict);
+        Model::preventSilentlyDiscardingAttributes($strict);
     }
 
     protected function configureRateLimiters(): void
