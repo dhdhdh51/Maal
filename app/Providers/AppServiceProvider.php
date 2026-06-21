@@ -44,6 +44,10 @@ class AppServiceProvider extends ServiceProvider
             PaymentCompleted::class,
             GrantReferralReward::class,
         );
+        Event::listen(
+            PaymentCompleted::class,
+            \App\Listeners\MarkPreviewConverted::class,
+        );
     }
 
     protected function configureModels(): void

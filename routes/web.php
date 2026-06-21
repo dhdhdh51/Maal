@@ -1,10 +1,20 @@
 <?php
 
 use App\Http\Controllers\AccessController;
+use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FavoriteController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlaybackController;
+use App\Http\Controllers\PreviewAnalyticsController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StreamController;
+use App\Http\Controllers\SupportController;
+use App\Http\Controllers\WatchHistoryController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,13 +22,26 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Public site routes. The cinematic frontend + catalog routes are added by
-| later systems; for now a temporary home keeps named routes resolvable.
-|
 */
 
-Route::get('/', fn () => view('home-placeholder'))->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+/*
+| Public catalog
+*/
+Route::middleware('age.confirmed')->group(function () {
+    Route::get('/categories', [CatalogController::class, 'categories'])->name('categories');
+    Route::get('/search', [CatalogController::class, 'browse'])->name('search');
+    Route::get('/category/{category:slug}', [CatalogController::class, 'category'])->name('category.show');
+    Route::get('/video/{video:slug}', [CatalogController::class, 'video'])->name('video.show');
+});
+
+// Content reporting (guests allowed).
+Route::get('/report', [ReportController::class, 'create'])->name('report.create');
+Route::post('/report', [ReportController::class, 'store'])->middleware('throttle:auth')->name('report.store');
+
+// Newsletter signup.
+Route::post('/newsletter', [NewsletterController::class, 'subscribe'])->middleware('throttle:auth')->name('newsletter.subscribe');
 
 /*
 | Streaming endpoints
@@ -40,7 +63,11 @@ Route::middleware('age.confirmed')->group(function () {
     Route::middleware('auth')->group(function () {
         Route::post('/watch/{video:slug}/heartbeat', [PlaybackController::class, 'heartbeat'])->name('watch.heartbeat');
         Route::post('/watch/{video:slug}/stopped', [PlaybackController::class, 'stopped'])->name('watch.stopped');
+        Route::post('/watch/{video:slug}/progress', [WatchHistoryController::class, 'store'])->name('watch.progress');
     });
+
+    // Preview engagement analytics (guests + users).
+    Route::post('/watch/{video:slug}/preview-event', [PreviewAnalyticsController::class, 'store'])->name('watch.preview_event');
 });
 
 /*
@@ -68,7 +95,32 @@ Route::post('/webhooks/{gateway}', [WebhookController::class, 'handle'])
 
 // User access + invoices.
 Route::middleware(['auth', 'account.active'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/profile', [DashboardController::class, 'profile'])->name('profile.edit');
+    Route::put('/dashboard/profile', [DashboardController::class, 'updateProfile'])->name('profile.update');
+    Route::put('/dashboard/password', [DashboardController::class, 'updatePassword'])->name('password.change');
+
     Route::get('/dashboard/access', [AccessController::class, 'index'])->name('access.index');
     Route::get('/dashboard/invoices', [AccessController::class, 'invoices'])->name('invoices.index');
     Route::get('/dashboard/invoices/{payment}', [AccessController::class, 'invoice'])->name('invoices.show');
+
+    // Favorites / watchlist
+    Route::get('/dashboard/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
+    Route::post('/favorites/{video:slug}/toggle', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
+
+    // Watch history
+    Route::get('/dashboard/history', [WatchHistoryController::class, 'index'])->name('history.index');
+    Route::delete('/dashboard/history/{history}', [WatchHistoryController::class, 'destroy'])->name('history.destroy');
+
+    // Notifications
+    Route::get('/dashboard/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read_all');
+
+    // Support tickets
+    Route::get('/support', [SupportController::class, 'index'])->name('support.index');
+    Route::get('/support/new', [SupportController::class, 'create'])->name('support.create');
+    Route::post('/support', [SupportController::class, 'store'])->name('support.store');
+    Route::get('/support/{ticket}', [SupportController::class, 'show'])->name('support.show');
+    Route::post('/support/{ticket}/reply', [SupportController::class, 'reply'])->name('support.reply');
 });

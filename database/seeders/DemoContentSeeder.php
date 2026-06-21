@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\CategoryAccessPlan;
 use App\Models\HomepageSection;
 use App\Models\StorageConfiguration;
+use App\Models\Video;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -122,5 +123,34 @@ class DemoContentSeeder extends Seeder
                 'is_active' => true,
             ],
         );
+
+        // ----- Demo videos (ready + published) so listings are populated -----
+        $free = $created[0];   // Originals (free)
+        $demo = [
+            ['Welcome to Maal', $free, false],
+            ['Behind the Scenes', $free, false],
+            ['Premiere Episode', $premium, true],
+            ['Masterclass: Lighting', $masterclass, true],
+        ];
+
+        foreach ($demo as $i => [$title, $category, $locked]) {
+            Video::updateOrCreate(
+                ['slug' => Str::slug($title)],
+                [
+                    'category_id' => $category->id,
+                    'title' => $title,
+                    'description' => 'Demo content entry for '.$category->name.'.',
+                    'duration' => 600 + $i * 120,
+                    'processing_status' => 'ready',
+                    'processing_progress' => 100,
+                    'is_published' => true,
+                    'is_locked' => $locked,
+                    'is_free_preview' => true,
+                    'available_qualities' => ['360p', '720p'],
+                    'published_at' => now()->subDays($i),
+                    'views_count' => random_int(50, 5000),
+                ],
+            );
+        }
     }
 }
