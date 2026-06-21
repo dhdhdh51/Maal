@@ -64,6 +64,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Sanctum stateful API for first-party SPA/mobile.
         $middleware->statefulApi();
+
+        // Payment gateways post back cross-site without a CSRF token.
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/*',
+            'payment/return/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

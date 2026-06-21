@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Remove abandoned multipart uploads and stale "uploading" video records hourly.
 Schedule::command('maal:cleanup-uploads')->hourly();
+
+// Expire elapsed category-access grants daily.
+Schedule::command('maal:expire-access')->daily();
