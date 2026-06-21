@@ -16,3 +16,6 @@ Schedule::command('maal:expire-access')->daily();
 
 // Abandoned-checkout reminders every couple of hours.
 Schedule::command('maal:abandoned-checkout')->everyThreeHours();
+
+// Weekly database backup (retains recent copies).
+Schedule::command('maal:backup')->weekly()->sundays()->at('03:00');

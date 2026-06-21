@@ -1,61 +1,55 @@
 # Maal — Premium Video Streaming Platform
 
-A production-grade, legal, age-gated video streaming platform built with **Laravel 12 / PHP 8.2+**, MySQL 8, Redis, FFmpeg and S3-compatible object storage (Cloudflare R2 / Amazon S3 / Backblaze B2 / DigitalOcean Spaces). Adaptive **HLS** delivery, category-based access locking, resumable uploads, background transcoding and a full admin panel.
+A production-grade, legal, age-gated video streaming platform built with **Laravel 12 / PHP 8.2+**, MySQL 8, Redis, FFmpeg and S3-compatible object storage (Cloudflare R2 / Amazon S3 / Backblaze B2 / DigitalOcean Spaces). Adaptive **HLS** delivery, category-based access locking, resumable uploads, background transcoding, dynamic watermarking, device/session control and a full admin panel.
 
-> **Status — Foundation phase.** This branch (`develop`) contains the project scaffold, full database schema, domain models, roles/permissions and seed data. Application layers (controllers, services, queue jobs, payment gateways, frontend) are being built incrementally on top of this foundation. See [Roadmap](#roadmap).
+**PayU is the primary payment gateway** (Razorpay, Stripe and manual bank transfer are also supported).
+
+---
+
+## Feature overview
+
+| Area | What's included |
+|------|-----------------|
+| **Auth** | Register, login, email OTP verification, optional phone OTP, OTP password reset, age gate, terms consent, admin 2FA (Google Authenticator + recovery codes), Sanctum API tokens, device & session tracking |
+| **Uploads** | Resumable chunked uploads — S3 multipart (browser → bucket) or local-disk fallback; format/size/quota validation; never via plain PHP form upload |
+| **Transcoding** | FFmpeg → adaptive HLS ladder (360p–4K, no upscaling), poster, sprite thumbnails, preview clip (mp4 + HLS), SRT→VTT subtitles; dedicated queues, retries/backoff, progress + reprocess/cancel |
+| **Streaming** | Signed/expiring HLS via path tokens, private originals, dynamic moving watermark (email/id/masked phone/datetime/session), quality + subtitle selectors, PiP, autoplay-next, single-stream concurrency enforcement, graceful error/processing screens |
+| **Access & billing** | Category access (free/paid/subscription/lifetime), plans incl. bundles, modular gateways (**PayU**, Razorpay, Stripe, Manual), secure webhooks (signature + idempotency), invoices, grant/extend/revoke/expire |
+| **Offers** | Coupons (%, flat, free-access, scoped, limited), referrals (reward on first paid order), wallet credit/debit, abandoned-checkout reminders |
+| **User** | Cinematic home sections (trending/newest/continue-watching/recommended/…), browse, search + filters, favorites, watch history + resume, dashboard, support tickets, content reporting, in-app notifications, newsletter |
+| **Admin** | Analytics dashboard (revenue/subs/watch-time/preview-conversion), categories + plans, video management (bulk, instant disable, reprocess, subtitles), preview-duration manager, users + access, coupons, reports moderation, payments (approve/refund), settings, countries, homepage/banners/email-templates, roles & permissions, audit logs, system health |
+| **Frontend** | Dark glassmorphism UI, Three.js 3D hero with low-end fallback, mobile bottom nav + desktop sidebar, toasts, WhatsApp support button, SEO (OG + VideoObject + sitemap + robots) |
 
 ---
 
 ## Tech stack
 
-| Layer | Choice |
-|-------|--------|
-| Framework | Laravel 12 (PHP 8.2+) |
-| Database | MySQL 8 |
-| Cache / Queue / Session | Redis |
-| Object storage | Cloudflare R2 / S3 / Backblaze B2 / DO Spaces (S3-compatible via Flysystem) |
-| Streaming | FFmpeg → HLS adaptive (360p–4K), signed expiring URLs |
-| Auth | Laravel + Sanctum (API tokens), Spatie roles/permissions, Google2FA (admin 2FA) |
-| Payments | **PayU (primary)**, Razorpay, Stripe, Manual approval (modular) |
+Laravel 12 (PHP 8.2+) · MySQL 8 · Redis (cache/queue/session) · FFmpeg · Flysystem S3 (R2/S3/B2/Spaces) · Laravel Sanctum · Spatie Permission · Google2FA · Blade + Tailwind + Alpine + hls.js + Three.js.
 
 ---
 
 ## Requirements (production VPS)
 
-- PHP 8.2+ with extensions: `bcmath`, `ctype`, `curl`, `fileinfo`, `gd`, `intl`, `mbstring`, `openssl`, `pdo_mysql`, `redis`, `zip`
-- Composer 2.x
-- MySQL 8.x
-- Redis 6+
-- FFmpeg + ffprobe
-- Nginx (or Apache)
-- Supervisor (queue workers)
-- Node.js 18+ (frontend build)
+- PHP 8.2+ with: `bcmath ctype curl fileinfo gd intl mbstring openssl pdo_mysql redis zip`
+- Composer 2.x · MySQL 8 · Redis 6+ · **FFmpeg + ffprobe** · Nginx · Supervisor · Node 18+ (only if rebuilding assets)
 
 ---
 
-## Quick start (local development)
+## Quick start (local)
 
 ```bash
-# 1. Install dependencies
 composer install
-
-# 2. Environment
 cp .env.example .env
 php artisan key:generate
-
-# 3. Configure DB + Redis + storage in .env (see below)
-
-# 4. Migrate and seed (creates roles, settings, demo content, test accounts)
+# configure DB + Redis + storage in .env
 php artisan migrate --seed
-
-# 5. Storage symlink + serve
 php artisan storage:link
 php artisan serve
 ```
 
-> For a quick zero-dependency local spin-up you can set `DB_CONNECTION=sqlite`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync` and `touch database/database.sqlite`.
+> Zero-dependency spin-up: set `DB_CONNECTION=sqlite`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync`, `MEDIA_DISK=local`, then `touch database/database.sqlite && php artisan migrate --seed`. For MySQL + Redis locally use `docker compose -f deploy/docker-compose.yml up -d`.
 
-### Test accounts (seeded)
+### Seeded test accounts (change before production)
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -64,86 +58,101 @@ php artisan serve
 | Premium User | `premium@maal.test` | `Premium@12345` |
 | Demo User | `user@maal.test` | `User@12345` |
 
-> Override any of these at seed time with `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, etc. **Change all passwords before going to production.**
+Override at seed time with `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, etc.
 
 ---
 
-## Configuration
+## VPS deployment
 
-All tunables live in `.env` (see `.env.example` for the full annotated template) and three config files:
+```bash
+# 1. Code + deps
+git clone <repo> /var/www/maal && cd /var/www/maal
+composer install --no-dev --optimize-autoloader
+cp .env.example .env && php artisan key:generate
+# edit .env: APP_URL, DB_*, REDIS_*, MEDIA_DISK + storage creds, PAYU_*, MAIL_*, HLS_SIGNING_KEY
 
-- `config/streaming.php` — HLS rendition ladder, FFmpeg paths, preview defaults, upload limits, watermark, dedicated queue channels, processing states.
-- `config/payments.php` — gateway registry (PayU primary), webhook hardening.
-- `config/filesystems.php` — `local`, `s3`, `r2`, `b2`, `spaces` disks (all private by default).
+# 2. Database + storage
+php artisan migrate --force --seed
+php artisan storage:link
+php artisan config:cache route:cache view:cache
+
+# 3. Permissions
+chown -R www-data:www-data storage bootstrap/cache
+```
+
+### FFmpeg
+
+```bash
+sudo apt-get update && sudo apt-get install -y ffmpeg
+# set in .env if non-standard:
+# FFMPEG_BINARY=/usr/bin/ffmpeg
+# FFPROBE_BINARY=/usr/bin/ffprobe
+```
 
 ### Object storage
 
-Set `MEDIA_DISK` to the active provider and fill its credentials block. Originals are stored **privately**; HLS/posters/thumbnails are served via `CDN_URL` or signed routes. Original video files are never publicly accessible.
+Set `MEDIA_DISK` to `r2` | `s3` | `b2` | `spaces` and fill the matching credentials block in `.env`. Set `CDN_URL` to the public CDN domain fronting the bucket. Originals are stored privately and are **never** served directly — only signed HLS and CDN URLs for derived assets.
 
-### Roles & permissions
+### Nginx, Supervisor, cron
 
-Five roles: **guest** (unauthenticated), **user**, **premium**, **content_manager**, **admin**. Permissions are defined centrally in `app/Support/Permissions.php` (46 permissions across 10 groups) and seeded by `RolePermissionSeeder`.
+Samples live in [`deploy/`](deploy):
 
----
+- `deploy/nginx.conf` — server block (TLS, gzip, static caching, no-store on `.m3u8`).
+- `deploy/supervisor.conf` — one worker group per queue channel (transcoding/previews/thumbnails/uploads/subtitles/notifications/analytics/default).
+- `deploy/maal.cron` — the every-minute scheduler entry.
 
-## Database schema
-
-`php artisan migrate` creates 35 tables. Domain highlights:
-
-- **Catalog:** `categories`, `category_access_plans`, `videos`, `video_files`, `video_previews`, `video_subtitles`, `video_thumbnails`, `video_processing_jobs`
-- **Access & billing:** `user_category_access`, `payments`, `payment_transactions`, `coupons`, `coupon_redemptions`, `referrals`
-- **Engagement:** `watch_history`, `favorites`, `user_devices`, `user_sessions`, `notifications`, `preview_analytics`
-- **Moderation & support:** `reports`, `support_tickets`, `support_ticket_replies`
-- **Admin & config:** `settings`, `storage_configurations`, `country_restrictions`, `banners`, `homepage_sections`, `email_templates`, `audit_logs`, `newsletter_subscribers`, `otp_verifications`
-- **Auth/infra:** `users`, `roles`, `permissions`, `personal_access_tokens`, `jobs`, `cache`, `sessions`
-
----
-
-## Queue workers (Supervisor)
-
-Transcoding runs on dedicated queues so the app stays responsive. Channel names are defined in `config/streaming.php`. Example Supervisor program:
-
-```ini
-[program:maal-worker-transcoding]
-command=php /var/www/maal/artisan queue:work redis --queue=transcoding --tries=3 --backoff=30 --timeout=21600
-directory=/var/www/maal
-autostart=true
-autorestart=true
-user=www-data
-numprocs=2
-redirect_stderr=true
-stdout_logfile=/var/www/maal/storage/logs/worker-transcoding.log
-stopwaitsecs=3600
+```bash
+sudo cp deploy/supervisor.conf /etc/supervisor/conf.d/maal.conf
+sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start all
+crontab -e   # add the line from deploy/maal.cron
 ```
 
-Replicate per queue (`uploads`, `thumbnails`, `previews`, `subtitles`, `notifications`, `analytics`, `default`). Full Supervisor + Nginx samples will live in `deploy/` as those layers land.
+### Scheduled tasks (`routes/console.php`)
 
-## Scheduler (cron)
-
-```cron
-* * * * * cd /var/www/maal && php artisan schedule:run >> /dev/null 2>&1
-```
+| Command | Cadence | Purpose |
+|---------|---------|---------|
+| `maal:cleanup-uploads` | hourly | remove abandoned multipart temp files |
+| `maal:expire-access` | daily | expire elapsed category grants |
+| `maal:abandoned-checkout` | every 3h | nudge unfinished checkouts |
+| `maal:backup` | weekly | gzip mysqldump into `storage/app/backups` |
 
 ---
 
-## Roadmap
+## Backups
 
-Built in this foundation phase:
-- [x] Laravel scaffold, packages, config (streaming/payments/filesystems)
-- [x] Full database schema (35 migrations)
-- [x] Eloquent models + relationships
-- [x] Roles, permissions and seed data (settings, templates, demo catalog, test accounts)
+`php artisan maal:backup` writes a compressed `mysqldump` to `storage/app/backups` and prunes old copies (`--keep=14`). Media is durable in object storage and is not dumped. Sync `storage/app/backups` offsite (e.g. a separate bucket) for disaster recovery.
 
-Next phases:
-- [ ] Auth (register/login/OTP/age-gate/2FA) + Sanctum API
-- [ ] Resumable multipart upload + storage adapter service
-- [ ] FFmpeg transcoding service + queue jobs (HLS, thumbnails, previews, subtitles)
-- [ ] Signed HLS streaming + player + watermark + device limits
-- [ ] Category access, checkout and payment gateways (PayU first) with secure webhooks
-- [ ] Coupons, referrals, offers
-- [ ] Admin panel + analytics + moderation
-- [ ] Cinematic frontend (dark glassmorphism, Three.js hero, mobile-first)
-- [ ] Deploy samples (Nginx, Supervisor), backups, troubleshooting guide
+---
+
+## Security highlights
+
+CSRF protection, rate limiting (auth/api/webhooks/uploads), hashed passwords, encrypted secrets (2FA, storage keys), signed/expiring HLS tokens, private originals, webhook signature + idempotency verification, device-limit + concurrent-stream enforcement, dynamic watermark, admin 2FA, full audit log, instant content-disable, country allow/block lists, age gate and consent records.
+
+---
+
+## Testing
+
+```bash
+php artisan test          # or ./vendor/bin/phpunit
+```
+
+The suite covers auth, resumable upload, transcoding orchestration, signed streaming + playback control, payments + webhooks, coupons/referrals/wallet, user features and the admin panel. FFmpeg/network calls are faked, so tests run without those binaries.
+
+---
+
+## Troubleshooting
+
+| Symptom | Check |
+|---------|-------|
+| Video stuck "processing" | Supervisor workers running? `storage/logs/worker-transcoding.log`; FFmpeg installed & paths correct; **System health** page shows failed jobs |
+| HLS won't play | `HLS_SIGNING_KEY` set; `MEDIA_DISK` reachable; `CDN_URL` correct; token not expired (`HLS_URL_TTL`) |
+| Uploads fail at a chunk | bucket CORS allows `PUT` from your domain; storage credentials valid; quota not exceeded |
+| Payment not captured | gateway enabled + keys set; webhook URL reachable & signature secret correct; check `payment_transactions` |
+| "Device limit reached" | raise per-user/global device limit in admin → users / settings |
+| Emails not sending | `MAIL_*` config; queue `notifications` worker running |
+| 503 maintenance for everyone | admin → Settings → maintenance off (admins bypass) |
+
+Logs: `storage/logs/laravel.log` and per-worker logs under `storage/logs/`.
 
 ---
 
