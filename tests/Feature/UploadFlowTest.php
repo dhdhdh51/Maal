@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\Transcode\ProcessUploadedVideo;
 use App\Models\User;
 use App\Models\Video;
 use App\Support\Permissions;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -20,6 +22,7 @@ class UploadFlowTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
         config()->set('streaming.media_disk', 'local');
         Storage::fake('local');
+        Queue::fake(); // don't run the transcode pipeline during upload tests
     }
 
     protected function manager(): User
@@ -62,6 +65,9 @@ class UploadFlowTest extends TestCase
         Storage::disk('local')->assertExists($video->original_path);
         $this->assertSame('Hello World', Storage::disk('local')->get($video->original_path));
         $this->assertSame(11, $video->file_size);
+
+        // Transcoding pipeline is queued on completion.
+        Queue::assertPushed(ProcessUploadedVideo::class);
     }
 
     public function test_rejects_unsupported_format(): void

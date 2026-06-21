@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Transcoding\FfmpegProcessor;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -12,7 +13,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(FfmpegProcessor::class, function () {
+            return FfmpegProcessor::fromConfig();
+        });
     }
 
     public function boot(): void
