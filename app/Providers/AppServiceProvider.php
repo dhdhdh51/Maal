@@ -2,10 +2,15 @@
 
 namespace App\Providers;
 
+use App\Events\PaymentCompleted;
+use App\Listeners\ApplyCouponRedemption;
+use App\Listeners\DebitWalletForPayment;
+use App\Listeners\GrantReferralReward;
 use App\Services\Transcoding\FfmpegProcessor;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +27,23 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureModels();
         $this->configureRateLimiters();
+        $this->registerEventListeners();
+    }
+
+    protected function registerEventListeners(): void
+    {
+        Event::listen(
+            PaymentCompleted::class,
+            ApplyCouponRedemption::class,
+        );
+        Event::listen(
+            PaymentCompleted::class,
+            DebitWalletForPayment::class,
+        );
+        Event::listen(
+            PaymentCompleted::class,
+            GrantReferralReward::class,
+        );
     }
 
     protected function configureModels(): void

@@ -13,3 +13,6 @@ Schedule::command('maal:cleanup-uploads')->hourly();
 
 // Expire elapsed category-access grants daily.
 Schedule::command('maal:expire-access')->daily();
+
+// Abandoned-checkout reminders every couple of hours.
+Schedule::command('maal:abandoned-checkout')->everyThreeHours();

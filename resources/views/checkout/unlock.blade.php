@@ -30,19 +30,38 @@
                     </label>
                 @endforeach
 
-                <form method="POST" action="{{ route('checkout.store') }}" class="pt-2">
+                <form method="POST" action="{{ route('checkout.store') }}" class="pt-2 space-y-3">
                     @csrf
                     <input type="hidden" name="plan_id" :value="plan">
+
+                    <div>
+                        <label class="block text-sm mb-1.5 text-gray-300">Coupon code <span class="text-gray-500">(optional)</span></label>
+                        <input name="coupon_code" value="{{ old('coupon_code') }}" placeholder="Enter code"
+                               class="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 text-sm uppercase">
+                    </div>
+
+                    @auth
+                        @if ((float) auth()->user()->wallet_balance > 0)
+                            <label class="flex items-center gap-2 text-sm text-gray-300">
+                                <input type="checkbox" name="apply_wallet" value="1" class="rounded bg-white/5 border-white/20 text-violet-500">
+                                Use wallet balance ({{ money(auth()->user()->wallet_balance) }})
+                            </label>
+                        @endif
+                    @endauth
+
                     @if (count($gateways) > 1)
-                        <label class="block text-sm mb-1.5 text-gray-300">Payment method</label>
-                        <select name="gateway" x-model="gateway" class="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 text-sm mb-3">
-                            @foreach ($gateways as $key => $gw)
-                                <option value="{{ $key }}">{{ $gw->label() }}</option>
-                            @endforeach
-                        </select>
+                        <div>
+                            <label class="block text-sm mb-1.5 text-gray-300">Payment method</label>
+                            <select name="gateway" x-model="gateway" class="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 text-sm">
+                                @foreach ($gateways as $key => $gw)
+                                    <option value="{{ $key }}">{{ $gw->label() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     @else
                         <input type="hidden" name="gateway" value="{{ array_key_first($gateways) ?? config('payments.default') }}">
                     @endif
+
                     <button class="w-full rounded-lg bg-violet-600 hover:bg-violet-500 transition py-2.5 font-medium text-white">
                         Continue to payment
                     </button>

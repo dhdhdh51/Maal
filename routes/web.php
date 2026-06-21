@@ -52,6 +52,7 @@ Route::middleware('age.confirmed')->group(function () {
 
     Route::middleware(['auth', 'account.active'])->group(function () {
         Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+        Route::post('/checkout/coupon', [CheckoutController::class, 'validateCoupon'])->name('checkout.coupon');
     });
 });
 

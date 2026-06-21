@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\Notifier;
+use App\Services\Offers\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -22,21 +23,30 @@ class CheckoutService
         protected PaymentGatewayManager $gateways,
         protected AccessGrantService $access,
         protected Notifier $notifier,
+        protected WalletService $wallet,
     ) {}
 
     /**
      * Create a pending Payment for a plan.
      *
-     * @param  array<string, mixed>  $opts  discount, coupon_id, utm_*, referred_by
+     * @param  array<string, mixed>  $opts  discount, coupon_id, apply_wallet, utm_*, referred_by
      */
     public function createPayment(User $user, CategoryAccessPlan $plan, string $gatewayKey, array $opts = []): Payment
     {
         $amount = (float) $plan->price;
-        $discount = (float) ($opts['discount'] ?? 0);
+        $couponDiscount = (float) ($opts['discount'] ?? 0);
         $taxPercent = (float) setting('tax_percent', 0);
-        $taxable = max(0, $amount - $discount);
+        $taxable = max(0, $amount - $couponDiscount);
         $tax = round($taxable * $taxPercent / 100, 2);
-        $total = round($taxable + $tax, 2);
+        $preWalletTotal = round($taxable + $tax, 2);
+
+        // Optional wallet application.
+        $walletApplied = 0.0;
+        if (! empty($opts['apply_wallet'])) {
+            $walletApplied = $this->wallet->applicable($user, $preWalletTotal);
+        }
+
+        $total = round($preWalletTotal - $walletApplied, 2);
 
         return Payment::create([
             'reference' => $this->reference(),
@@ -46,11 +56,12 @@ class CheckoutService
             'coupon_id' => $opts['coupon_id'] ?? null,
             'gateway' => $gatewayKey,
             'amount' => $amount,
-            'discount' => $discount,
+            'discount' => $couponDiscount,
             'tax' => $tax,
             'total' => $total,
             'currency' => $plan->currency,
             'status' => 'pending',
+            'meta' => ['wallet_applied' => $walletApplied],
             'utm_source' => $opts['utm_source'] ?? null,
             'utm_medium' => $opts['utm_medium'] ?? null,
             'utm_campaign' => $opts['utm_campaign'] ?? null,
