@@ -101,6 +101,8 @@ Samples live in [`deploy/`](deploy):
 - `deploy/supervisor.conf` — one worker group per queue channel (transcoding/previews/thumbnails/uploads/subtitles/notifications/analytics/default).
 - `deploy/maal.cron` — the every-minute scheduler entry.
 
+> **Hosting on cPanel?** See [`deploy/CPANEL.md`](deploy/CPANEL.md). The app runs on cPanel, but FFmpeg/Redis/Supervisor are typically unavailable on shared plans — a cPanel VPS (or plain VPS) is strongly recommended.
+
 ```bash
 sudo cp deploy/supervisor.conf /etc/supervisor/conf.d/maal.conf
 sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start all
