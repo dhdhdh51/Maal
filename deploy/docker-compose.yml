@@ -1,0 +1,33 @@
+# Lightweight local dev stack for Maal (MySQL + Redis).
+# The app itself runs via `php artisan serve` or Sail; this just provides
+# the backing services. Usage:  docker compose -f deploy/docker-compose.yml up -d
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: maal
+      MYSQL_USER: maal
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    ports:
+      - "3306:3306"
+    volumes:
+      - maal_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - maal_redis:/data
+
+volumes:
+  maal_mysql:
+  maal_redis:

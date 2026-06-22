@@ -1,0 +1,6 @@
+# Maal scheduler — add to the deploy user's crontab (crontab -e).
+# Runs Laravel's scheduler every minute; individual tasks are defined in
+# routes/console.php (cleanup-uploads hourly, expire-access daily,
+# abandoned-checkout every 3h, backup weekly).
+
+* * * * * cd /var/www/maal && php artisan schedule:run >> /dev/null 2>&1
